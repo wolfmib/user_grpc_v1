@@ -1,0 +1,4 @@
+mkdir user_proto
+protoc -I proto proto/user_proto.proto --go_out=plugins=grpc:user_proto
+
+go run main.go 
