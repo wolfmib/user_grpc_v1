@@ -1,0 +1,75 @@
+syntax = "proto3";
+
+package user_proto;
+
+//option go_package = "github.com/johnny_hung/proto/user_proto";  
+
+
+service UserService{
+    rpc register_api(RegisterRequest) returns( RegisterResponse) {}
+    rpc get_user_info_by_uuid(GetUserInfoRequest) returns (GetUserInfoResponse){}
+}
+
+/*
+uuid (uuid-format)
+first name (str)
+family name (str)
+email (str)
+email_is_valid (boolean, default False)
+password
+user_id ( 1-1000 from now) (int)
+----------------------------------------------
+UI format( text expression in client.py )
+Register
+
+input:  name, family name, email to make register 
+[system]: check email is unique or not , proceed next step
+input password (once is ok for now)
+[system]: create new data for the user
+
+*/
+
+/* format
+    string name = 1;
+    int32 id = 2;
+    bool has_ponycopter = 3;
+*/
+
+//  "_id" : ObjectId("5e510707c1fbe04fa9d5959d"), 
+/* 
+    "uuid" : UUID("da00fcb1-2869-4f47-b7ed-956b9afdf7f1"), 
+    "first_name" : "johnny", 
+    "family_name" : "hung", 
+    "email" : "wolfmib@gmail.com", 
+    "password" : "1234abcd", 
+    "user_id" : 1, 
+    "email_is_valid" : false 
+*/
+
+message RegisterRequest{
+    string first_name = 1;
+    string family_name = 2;
+    string email = 3;
+}
+
+message RegisterResponse{
+    string uuid = 1;
+    string email = 2;
+    int32 user_id = 3;
+}
+
+message GetUserInfoRequest{
+    string uuid = 1;
+    
+}
+
+message GetUserInfoResponse{
+ 
+    string uuid = 1;
+    string first_name = 2;
+    string family_name = 3;
+    string email = 4;
+    int32 user_id = 5;
+    bool email_is_valid = 6;
+}
+

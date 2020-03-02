@@ -31,3 +31,21 @@ Result:
 ![Result](img/test_01_communication_run_server_ok.jpg)
 
 --- 
+
+## Docker Test
+---
+- check docmer_cmd_history.md
+- See files 
+    - DockerFile 
+        - access data copy 
+        - go build process
+    - Makefile 
+        - build part
+        - run part
+
+---
+
+Result
+---
+
+![Docker Test](img/docker.jpg)
