@@ -1,3 +1,0 @@
-[submodule "proto"]
-	path = proto
-	url = git@gitlab.com:Johnny_Wick/ja_gitlab_grpc_proto.git
