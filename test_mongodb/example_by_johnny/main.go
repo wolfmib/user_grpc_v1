@@ -93,6 +93,38 @@ func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 	log.Println("Saveing data ...")
 	result, _ := collection.InsertOne(ctx, my_user)
 	json.NewEncoder(response).Encode(result)
+}
+
+func GetUsersEndpoint(response http.ResponseWriter, request *http.Request) {
+
+	// Header
+	response.Header().Add("content-type", "application/json")
+
+	// Conn
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	collection := client.Database("test_user").Collection("test_user_collection")
+	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+
+	// Query All
+	cursor, err := collection.Find(ctx, bson.M{})
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"message": err for query by find()}`))
+		return
+	}
+
+	defer cursor.Close(ctx)
+
+	var all_users []User
+	for cursor.Next(ctx) {
+		var _tem_user User
+
+		cursor.Decode(&_tem_user)
+		all_users = append(all_users, _tem_user)
+	}
+
+	json.NewEncoder(response).Encode(all_users)
 
 }
 
@@ -103,6 +135,7 @@ func main() {
 	//Router
 	router := mux.NewRouter()
 	router.HandleFunc("/user", CreateUserEndpoint).Methods("POST")
+	router.HandleFunc("/users", GetUsersEndpoint).Methods("GET")
 
 	http.ListenAndServe(":12345", router)
 
