@@ -11,6 +11,7 @@ import (
 
 	"github.com/gorilla/mux"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -35,15 +36,22 @@ func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 			return
 		}
 	*/
-	log.Println("my user")
-	log.Println(my_user)
-	log.Println("---------------")
+
+	log.Println(request.Body)
+
+	//custom_user_map := make(map[string]interface{})
+	//custom_user_map["firstname"] = "This is interface"
+	//custom_user_map["lastname"] = "hahahaha"
 
 	err := json.NewDecoder(request.Body).Decode(&my_user)
 	if err != nil {
 		http.Error(response, err.Error(), http.StatusBadRequest)
 		return
 	}
+
+	log.Println(my_user)
+	// Johnny: this interface, will help you to dynamic access the api data format
+	// no need to limit the structure in struct.
 
 	log.Println("[INFO]: Get the request")
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
@@ -52,8 +60,40 @@ func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
 	log.Println("my user")
 	log.Println(my_user)
+
+	// Check the data is not the same
+
+	var _key string = "firstname"
+	var _value string = my_user.FirstName
+
+	// cursor, err := collection.Find(ctx, bson.M{"firstname": "hi"})
+	cursor, err := collection.Find(ctx, bson.M{_key: _value})
+
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"message": "` + err.Error() + `"}`))
+		return
+	}
+
+	defer cursor.Close(ctx)
+
+	var _tem_user User
+	for cursor.Next(ctx) {
+
+		log.Println("####### message  Duplicate Data ...##############")
+		log.Println("Input firstname", _value)
+		cursor.Decode(&_tem_user)
+		fmt.Println(_tem_user)
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"message": "Duplicate Data ..."} `))
+
+		return
+	}
+
+	log.Println("Saveing data ...")
 	result, _ := collection.InsertOne(ctx, my_user)
 	json.NewEncoder(response).Encode(result)
+
 }
 
 func main() {
