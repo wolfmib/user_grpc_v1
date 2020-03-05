@@ -1,6 +1,14 @@
 ## Golang Package conn Mongo DB Example
 ---
 
+## Mongo Type (for future implment interface used)
+--
+
+![image](img/mongo_type.jpg)
+
+
+---
+
 ## File and Result:
 ---
 
@@ -17,6 +25,9 @@
 
 - Next, filter 🦜.... under progress... 
 - 
+
+
+
 
 
 ---
