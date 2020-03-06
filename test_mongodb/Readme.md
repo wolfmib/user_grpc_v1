@@ -6,6 +6,11 @@
 
 - conn_mongodb_et_insert.go  ✅
 - Result: 
+- johnny_example: (done)
+    - CreateUser
+    - QueryUser by ID, Name
+    - Query all Users
+    - test_user_db ... collection.  
 
 ---
 ![result](img/Test_InsertOne_Ok.jpg) 
