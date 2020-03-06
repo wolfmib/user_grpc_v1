@@ -12,14 +12,15 @@ import (
 	"github.com/gorilla/mux"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type User struct {
-	//ID        primitive.ObjectID `json:"_id" bson:"_id"`
-	FirstName string `json:"firstname,omitempty" bson:"firstname,omitempey"`
-	LastName  string `json:"lastname,omitempty" bson:"lastname,omitempey"`
+	ID        primitive.ObjectID `json:"_id" bson:"_id"`
+	FirstName string             `json:"firstname,omitempty" bson:"firstname,omitempey"`
+	LastName  string             `json:"lastname,omitempty" bson:"lastname,omitempey"`
 }
 
 // Global client
@@ -95,6 +96,7 @@ func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 	json.NewEncoder(response).Encode(result)
 }
 
+// Query all users
 func GetUsersEndpoint(response http.ResponseWriter, request *http.Request) {
 
 	// Header
@@ -128,6 +130,87 @@ func GetUsersEndpoint(response http.ResponseWriter, request *http.Request) {
 
 }
 
+// Query one specific user by id
+func CetUser_by_id_Endpoint(response http.ResponseWriter, request *http.Request) {
+
+	// Header
+	response.Header().Add("content-type", "application/json")
+
+	// Make user structure instance
+	var user User
+
+	// load dynamic endpoint request to parameters
+	user_dynamic_parameter := mux.Vars(request)
+
+	// Convert to mongo object id (I won't use that )
+	id, _ := primitive.ObjectIDFromHex(user_dynamic_parameter["id"])
+	log.Println("Get id:    , ", id)
+
+	// Setting ctx
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	collection := client.Database("test_user").Collection("test_user_collection")
+
+	// Query ici
+	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+	err := collection.FindOne(ctx, bson.M{"_id": id}).Decode(&user)
+
+	// Drror checking
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"message": err for query by find()}`))
+		return
+	}
+
+	// Make json response
+	log.Println("==================")
+	log.Println("Return the query message user: ", user)
+	log.Println("==================")
+	json.NewEncoder(response).Encode(user)
+
+}
+
+// Query one specific user by firstname
+// /user/name/{firstname}
+func CetUser_by_name_Endpoint(response http.ResponseWriter, request *http.Request) {
+
+	// Header
+	response.Header().Add("content-type", "application/json")
+
+	// Make user structure instance
+	var user User
+
+	// load dynamic endpoint request to parameters
+	user_dynamic_parameter := mux.Vars(request)
+
+	// Convert to mongo object id (I won't use that )
+	firstname := user_dynamic_parameter["firstname"]
+	log.Println("Get firstname:    , ", firstname)
+
+	// Setting ctx
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+	collection := client.Database("test_user").Collection("test_user_collection")
+
+	// Query ici
+	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+	err := collection.FindOne(ctx, bson.M{"firstname": firstname}).Decode(&user)
+
+	// Drror checking
+	if err != nil {
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"message": err for query by find()}`))
+		return
+	}
+
+	// Make json response
+	log.Println("==================")
+	log.Println("Return the query message user: ", user)
+	log.Println("==================")
+	json.NewEncoder(response).Encode(user)
+
+}
+
 func main() {
 
 	fmt.Println("Start the application ....")
@@ -135,8 +218,9 @@ func main() {
 	//Router
 	router := mux.NewRouter()
 	router.HandleFunc("/user", CreateUserEndpoint).Methods("POST")
-	router.HandleFunc("/users", GetUsersEndpoint).Methods("GET")
-
+	router.HandleFunc("/users", GetUsersEndpoint).Methods("GET")                         //Usersssssssss : all user !
+	router.HandleFunc("/user/{id}", CetUser_by_id_Endpoint).Methods("GET")               //User, one user with id
+	router.HandleFunc("/user/name/{firstname}", CetUser_by_name_Endpoint).Methods("GET") //User, one user with firstanme
 	http.ListenAndServe(":12345", router)
 
 }
