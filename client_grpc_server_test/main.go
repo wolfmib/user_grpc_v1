@@ -1,20 +1,30 @@
 package main
 
+// GateClient
+// will call -> User Services
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"time"
 
 	"log"
 
 	"github.com/gorilla/mux"
+	"github.com/sirupsen/logrus"
+	"google.golang.org/grpc"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	pb "github.com/wolfmib/user_grpc_v1/user_proto"
+)
+
+// [GRPC][Johnny]: GRPC Part Constant
+const (
+	address = "localhost:5001"
 )
 
 type User struct {
@@ -24,13 +34,21 @@ type User struct {
 	Email       string             `json:"email,omitempty" bson:"email,omitempey"`
 }
 
+// Johnny:
+// This prevent the _ID (000000) dupicate saving into db and caused error
+type Create_User struct {
+	First_Name  string `json:"first_name,omitempty" bson:"first_name,omitempey"`
+	Family_Name string `json:"family_name,omitempty" bson:"family_name,omitempey"`
+	Email       string `json:"email,omitempty" bson:"email,omitempey"`
+}
+
 // Global client
 var client *mongo.Client
 
 //Regiser
 func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 	response.Header().Add("content-type", "application/json")
-	var my_user User
+	var my_user pb.RegisterRequest
 
 	/*
 		err := json.NewDecoder(r.Body).Decode(&p)
@@ -53,20 +71,42 @@ func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 	}
 
 	log.Println(my_user)
-	// Johnny: this interface, will help you to dynamic access the api data format
-	// no need to limit the structure in struct.
 
-	log.Println("[INFO]: Get the request")
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
-	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-	collection := client.Database("test_user").Collection("test_user_collection")
-	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
-	log.Println("my user")
-	log.Println(my_user)
+	// Johnny: Call DB for testing, now usring GRPC
+	/*
+		log.Println("[INFO]: Get the request")
+		ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+		client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
+		collection := client.Database("user_db").Collection("user_collection")
+		ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
+		log.Println("my user")
+		log.Println(my_user)
 
-	log.Println("Saveing data ...")
-	result, _ := collection.InsertOne(ctx, my_user)
-	json.NewEncoder(response).Encode(result)
+		log.Println("Saveing data ...")
+		result, _ := collection.InsertOne(ctx, my_user)
+		json.NewEncoder(response).Encode(result)
+		logrus.Info(result)
+	*/
+
+	//####################################### GRPC #############################
+	conn, err := grpc.Dial(address, grpc.WithInsecure())
+	if err != nil {
+		log.Fatalf("Did not connect: %v", err)
+	}
+	defer conn.Close()
+	client := pb.NewUserServiceClient(conn)
+
+	r, err := client.RegisterApi(context.Background(), &my_user)
+
+	if err != nil {
+		logrus.Error("Could not create user", err)
+		log.Fatalf("Could not create user %v", err)
+	}
+
+	logrus.Info("Created", r)
+
+	//##########################################################################
+
 }
 
 // Query all users
@@ -78,7 +118,7 @@ func GetUsersEndpoint(response http.ResponseWriter, request *http.Request) {
 	// Conn
 	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
 	client, _ = mongo.Connect(ctx, options.Client().ApplyURI("mongodb://localhost:27017"))
-	collection := client.Database("test_user").Collection("test_user_collection")
+	collection := client.Database("user").Collection("user_collection")
 	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
 
 	// Query All
@@ -186,11 +226,12 @@ func CetUser_by_name_Endpoint(response http.ResponseWriter, request *http.Reques
 
 func main() {
 
-	fmt.Println("Start the application ....")
+	logrus.Info("[GATE]: Start the application ....")
+	logrus.Warn("Use the api_post_create_user.sh to call my /register endpoint !")
 
 	//Router
 	router := mux.NewRouter()
-	router.HandleFunc("/user", CreateUserEndpoint).Methods("POST")
+	router.HandleFunc("/register", CreateUserEndpoint).Methods("POST")
 	router.HandleFunc("/users", GetUsersEndpoint).Methods("GET")                         //Usersssssssss : all user !
 	router.HandleFunc("/user/{id}", CetUser_by_id_Endpoint).Methods("GET")               //User, one user with id
 	router.HandleFunc("/user/name/{firstname}", CetUser_by_name_Endpoint).Methods("GET") //User, one user with firstanme

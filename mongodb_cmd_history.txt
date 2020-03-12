@@ -5,3 +5,7 @@ cd grpc_backend
 source ja_run_db.sh
 
 
+db.user_collection.drop()
+
+
+
