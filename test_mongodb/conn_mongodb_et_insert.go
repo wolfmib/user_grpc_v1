@@ -9,6 +9,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+
+	"reflect"
 )
 
 func main() {
@@ -24,16 +26,23 @@ func main() {
 
 	// Mongodb collection
 	user_collection := client.Database("user_db").Collection("user_collection")
+	fmt.Println("mongodb collection type =     ",reflect.TypeOf(user_collection))
 
 	// Ctx with timeout 5 s to insert data
 	ctx, _ = context.WithTimeout(context.Background(), 5*time.Second)
-	res, err := user_collection.InsertOne(ctx, bson.M{"first_name": "golang", "family_name": "test_mongodb_conn"})
+	res, err := user_collection.InsertOne(ctx, bson.M{"first_name": "remember", "family_name": "type IT in db, so you can see me..."})
+	fmt.Println("res type (by callint insertone ) =     ",reflect.TypeOf(res))
+	
+	
 	id := res.InsertedID
 	fmt.Printf("Insert id = %v      \n", id)
 
 	// Ctx with timout 10 s to query data
 	ctx, _ = context.WithTimeout(context.Background(), 10*time.Second)
 	cur, err := user_collection.Find(ctx, bson.D{})
+
+	fmt.Println("Cur's type =     ",reflect.TypeOf(cur))
+
 	if err != nil {
 		log.Fatal(err)
 	}

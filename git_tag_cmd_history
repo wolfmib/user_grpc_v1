@@ -1,0 +1,18 @@
+git ls-remote --tags git@gitlab.com:Johnny_Wick/ja_gitlab_grpc_proto.git
+
+
+
+
+note:
+
+cd submodule_directory
+
+git checkout v1.0
+
+cd ..
+
+git add submodule_directory
+
+git commit -m "moved submodule to v1.0"
+
+git push
