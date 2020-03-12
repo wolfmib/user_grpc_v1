@@ -1,7 +1,6 @@
 package main
 
-// GateClient
-// will call -> User Services
+// GateClient  call -> User Services
 import (
 	"context"
 	"encoding/json"

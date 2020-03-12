@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -19,13 +20,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func get_mongo_client(INPUT_TIMEOUT time.Duration, INPUT_APPLY_URI string) *mongo.Client {
+func get_mongo_client(INPUT_TIME time.Duration, INPUT_APPLY_URI string) *mongo.Client {
 
 	logrus.Warn("[get_mongo_client]Put me in the 'ja_golang_db package'")
 	logrus.Warn("[Jean]: Tu peut faire ja.golang_db.get_client return  mongodb_client_instance ou postgres_client_instance")
 	//Setting timeout : 10 seconds :
 	// 10 * time.Secound
-	local_ctx, _ := context.WithTimeout(context.Background(), INPUT_TIMEOUT*time.Second)
+	local_ctx, _ := context.WithTimeout(context.Background(), INPUT_TIME*time.Second)
 	// Get client by url:
 	// .ApplyURI("mongodb://localhost:27017"))
 	client, err := mongo.Connect(local_ctx, options.Client().ApplyURI(INPUT_APPLY_URI))
@@ -38,10 +39,10 @@ func get_mongo_client(INPUT_TIMEOUT time.Duration, INPUT_APPLY_URI string) *mong
 }
 
 // mongo.InsertOne Function
-func mongo_create_method(INPUT_TIMEOUT time.Duration, INPUT_MAP map[string]interface{}, INPUT_COLLECTION *mongo.Collection) (*mongo.InsertOneResult, error) {
+func mongo_create_method(INPUT_TIME time.Duration, INPUT_MAP map[string]interface{}, INPUT_COLLECTION *mongo.Collection) (*mongo.InsertOneResult, error) {
 
 	logrus.Warn("[mongo_create_method]Put me in the 'ja_golang_db package'")
-	local_ctx, _ := context.WithTimeout(context.Background(), INPUT_TIMEOUT*time.Second)
+	local_ctx, _ := context.WithTimeout(context.Background(), INPUT_TIME*time.Second)
 
 	// [Jean]: bson.M{} is just named type for map[string]interface{}
 	//         as you can see in docs: http://godoc.org/labix.org/v2/mgo/bson#M
@@ -79,7 +80,7 @@ func mongo_create_method(INPUT_TIMEOUT time.Duration, INPUT_MAP map[string]inter
 */
 
 func map_to_bsonM(my_map map[string]interface{}) (bson.M, error) {
-	logrus.Warn("[mongo_create_method]Put me in the 'ja_golang_db package'")
+	logrus.Warn("[map_to_bsonM]: Put me in the 'ja_golang_db package'")
 
 	_tem_bsonM := bson.M{}
 	for key, value := range my_map {
@@ -109,14 +110,44 @@ func (s *server) RegisterApi(ctx context.Context, in *pb.RegisterRequest) (*pb.R
 	log.Printf("Received: %v  ", in.GetFamilyName())
 	log.Printf("Received: %v  ", in.GetEmail())
 
-	// [Jean]: Insert
-	input_data_map := make(map[string]interface{})
-	input_data_map["first_tname"] = in.GetFirstName()
-	input_data_map["family_name"] = in.GetFamilyName()
-	input_data_map["email"] = in.GetEmail()
-	input_data_map["user_id"] = 911
+	// key_format in regiter api
+	var _key_first_name string = "first_name"
+	var _key_family_name string = "family_name"
+	var _key_email string = "email"
+	var _key_user_id string = "user_id"
 
+	// [Jean]: Insert Format
+	input_data_map := make(map[string]interface{})
+	input_data_map[_key_first_name] = in.GetFirstName()
+	input_data_map[_key_family_name] = in.GetFamilyName()
+	input_data_map[_key_email] = in.GetEmail()
+	input_data_map[_key_user_id] = 911
+
+	// [Johnny]: Checking the data is dulpicate or not
+	local_ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+	var _first_name_value string = in.GetFirstName()
+	var _family_name_value string = in.GetFamilyName()
+	var _email_value string = in.GetEmail()
+
+	cur, err := user_collection_global.Find(local_ctx, bson.M{_key_first_name: _first_name_value, _key_family_name: _family_name_value, _key_email: _email_value})
+	if err != nil {
+		logrus.Error(err)
+		log.Fatal(err)
+	}
+	defer cur.Close(context.Background())
+
+	logrus.Info("----------")
+	for cur.Next(context.Background()) {
+		logrus.Warn("Got Duplicate Register Rquest", cur)
+		//Response Back with Error Code 7575 (Repeat Repeat)
+		return &pb.RegisterResponse{Uuid: "", Email: "", UserId: 0, ErrorCode: 7575}, errors.New("Duplicated Data Create Request")
+	}
+	logrus.Info("-------------")
+	logrus.Info("No Duplicate Data Found ! Prepare for creating data")
+	// [Johnny]: Insert by custom function
+	logrus.Info("-------------")
 	res, err := mongo_create_method(5, input_data_map, user_collection_global)
+	logrus.Info("-------------")
 	if err != nil {
 		err_str := "mongo_create_method call fail "
 		logrus.Error(err_str)
