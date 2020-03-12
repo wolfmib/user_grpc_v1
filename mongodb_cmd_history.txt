@@ -1,1 +1,7 @@
 cls
+netstat -an -ptcp | grep LISTEN
+
+cd grpc_backend
+source ja_run_db.sh
+
+
