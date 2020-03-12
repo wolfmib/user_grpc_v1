@@ -32,6 +32,38 @@ Result:
 
 --- 
 
+
+## Proto V1.0.2 Tag note:
+--- 
+
+ - finish the register api
+ - result
+
+ ---
+
+![result](img/register_test_ok.jpg)
+
+---
+- Next 🦜...
+- User Service:
+    - do the dulplicate email, firstname, famklyname checking
+    - implement to add uuid format as discussed.
+    - make a correct response to Gate (need error code), back to Mary's proto repository first.
+    
+
+
+ ---
+
+
+
+
+
+
+
+
+---
+
+
 ## Docker Test
 ---
 - check docmer_cmd_history.md
