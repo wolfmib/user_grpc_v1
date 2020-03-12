@@ -14,6 +14,11 @@
 
 - conn_mongodb_et_insert.go  ✅
 - Result: 
+- johnny_example: (done)
+    - CreateUser
+    - QueryUser by ID, Name
+    - Query all Users
+    - test_user_db ... collection.  
 
 ---
 ![result](img/Test_InsertOne_Ok.jpg) 
@@ -27,7 +32,11 @@
 - 
 
 
+<<<<<<< HEAD
 
 
 
 ---
+=======
+---
+>>>>>>> 68e592893ca4c19ec9ed378799d99f2c24cd3f86
