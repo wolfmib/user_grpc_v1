@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"reflect"
 	"time"
 
 	pb "github.com/wolfmib/user_grpc_v1/user_proto"
@@ -16,6 +17,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -116,13 +118,6 @@ func (s *server) RegisterApi(ctx context.Context, in *pb.RegisterRequest) (*pb.R
 	var _key_email string = "email"
 	var _key_user_id string = "user_id"
 
-	// [Jean]: Insert Format
-	input_data_map := make(map[string]interface{})
-	input_data_map[_key_first_name] = in.GetFirstName()
-	input_data_map[_key_family_name] = in.GetFamilyName()
-	input_data_map[_key_email] = in.GetEmail()
-	input_data_map[_key_user_id] = 911
-
 	// [Johnny]: Checking the data is dulpicate or not
 	local_ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 	var _first_name_value string = in.GetFirstName()
@@ -140,10 +135,34 @@ func (s *server) RegisterApi(ctx context.Context, in *pb.RegisterRequest) (*pb.R
 	for cur.Next(context.Background()) {
 		logrus.Warn("Got Duplicate Register Rquest", cur)
 		//Response Back with Error Code 7575 (Repeat Repeat)
-		return &pb.RegisterResponse{Uuid: "", Email: "", UserId: 0, ErrorCode: 7575}, errors.New("Duplicated Data Create Request")
+		return &pb.RegisterResponse{Uuid: "", Email: "", UserId: 0, ErrorCode: 7575}, errors.New("Duplicated Data Create Request 7575")
 	}
 	logrus.Info("-------------")
 	logrus.Info("No Duplicate Data Found ! Prepare for creating data")
+
+	// [Johnny]: find the max_user_id
+	find_max_user_id_option := options.Find()
+	find_max_user_id_option.SetSort(bson.M{"user_id": -1})
+	cur, err = user_collection_global.Find(local_ctx, bson.M{}, find_max_user_id_option)
+
+	var my_cur []bson.M
+	if err = cur.All(local_ctx, &my_cur); err != nil {
+		log.Fatal(err)
+	}
+	defer cur.Close(local_ctx)
+	logrus.Info("Show MaxID:    ", my_cur[0]["user_id"])
+
+	logrus.Info("type of cur:   ", reflect.TypeOf(my_cur[0]["user_id"]))
+	var current_user_id int32 = my_cur[0]["user_id"].(int32)
+	new_user_id := current_user_id + 1
+
+	// [Jean]: Insert Format
+	input_data_map := make(map[string]interface{})
+	input_data_map[_key_first_name] = in.GetFirstName()
+	input_data_map[_key_family_name] = in.GetFamilyName()
+	input_data_map[_key_email] = in.GetEmail()
+	input_data_map[_key_user_id] = new_user_id
+
 	// [Johnny]: Insert by custom function
 	logrus.Info("-------------")
 	res, err := mongo_create_method(5, input_data_map, user_collection_global)
@@ -151,15 +170,25 @@ func (s *server) RegisterApi(ctx context.Context, in *pb.RegisterRequest) (*pb.R
 	if err != nil {
 		err_str := "mongo_create_method call fail "
 		logrus.Error(err_str)
-		log.Fatal(err_str)
+		return &pb.RegisterResponse{Uuid: "", Email: "", UserId: 0, ErrorCode: 1414}, nil
+
 	} else {
 		logrus.Info("Get Inserted data:\n", res)
 	}
 
-	email_str := fmt.Sprintf("%v", input_data_map["email"])
-	var user_id_int int32 = 911
+	logrus.Info("Res =        ", res)
+	logrus.Info("Type:        ", reflect.TypeOf(res))
+	logrus.Info("Inserted ID: ", res.InsertedID)
 
-	return &pb.RegisterResponse{Uuid: "xxxxx", Email: email_str, UserId: user_id_int}, nil
+	// Response Here
+	my_object_id := res.InsertedID.(primitive.ObjectID)
+	my_object_id_str := my_object_id.Hex()
+	email_str := fmt.Sprintf("%v", input_data_map["email"])
+	var error_code_int int32 = 5454
+	var user_id_int int32 = input_data_map["user_id"].(int32)
+
+	return &pb.RegisterResponse{Uuid: my_object_id_str, Email: email_str, UserId: user_id_int, ErrorCode: error_code_int}, nil
+
 }
 
 func main() {

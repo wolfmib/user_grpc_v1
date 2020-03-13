@@ -99,7 +99,10 @@ func CreateUserEndpoint(response http.ResponseWriter, request *http.Request) {
 
 	if err != nil {
 		logrus.Error("Could not create user", err)
-		log.Fatalf("Could not create user %v", err)
+		logrus.Error(r)
+		response.WriteHeader(http.StatusInternalServerError)
+		response.Write([]byte(`{"message": err for query by find()}`))
+		return
 	}
 
 	logrus.Info("Created", r)
